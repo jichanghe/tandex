@@ -3,7 +3,10 @@
 Fast de novo tandem repeat detection in DNA sequences. FASTA (plain or gzip) in, TSV or BED out.
 One C file, no dependencies beyond zlib.
 
+Repository: https://github.com/jichanghe/tandex
+
 ```
+git clone https://github.com/jichanghe/tandex && cd tandex
 make            # or: gcc -O3 -o tandex src/tandex.c -lm -lz
 make test       # 13 regression tests
 ./tandex genome.fa.gz > repeats.tsv
