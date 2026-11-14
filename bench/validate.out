@@ -1,0 +1,27 @@
+tandex calls: 21650; also in TRF default: 11797; tandex-only: 9853 (1039120 bp)
+
+Calibration: tandex calls that TRF default also reports (random sample of 2000)
+shared	n=2000	bp=436981	unit_test=1969/1998 (98.5%)	TRF-lenient=100.0%	ULTRA=93.4%	catalog=53.6%	any_support=100.0%	no_support=0 (0 bp)
+
+tandex-only calls by tandex score
+score 40-50	n=5043	bp=171574	unit_test=4630/5025 (92.1%)	TRF-lenient=91.0%	ULTRA=96.6%	catalog=79.3%	any_support=99.4%	no_support=30 (1929 bp)
+score 50-100	n=3058	bp=214488	unit_test=2896/3058 (94.7%)	TRF-lenient=75.5%	ULTRA=88.1%	catalog=44.2%	any_support=99.3%	no_support=21 (2037 bp)
+score 100-max	n=1752	bp=653058	unit_test=1741/1752 (99.4%)	TRF-lenient=36.9%	ULTRA=40.8%	catalog=4.2%	any_support=99.7%	no_support=5 (1895 bp)
+
+tandex-only calls by period
+period 1-6	n=6985	bp=364651	unit_test=6512/6967 (93.5%)	TRF-lenient=89.6%	ULTRA=96.2%	catalog=75.5%	any_support=99.7%	no_support=24 (1783 bp)
+period 7-100	n=2101	bp=260987	unit_test=1993/2101 (94.9%)	TRF-lenient=53.0%	ULTRA=72.2%	catalog=7.0%	any_support=98.8%	no_support=26 (2225 bp)
+period 101-2000	n=764	bp=396658	unit_test=762/764 (99.7%)	TRF-lenient=22.4%	ULTRA=5.1%	catalog=0.4%	any_support=99.7%	no_support=2 (897 bp)
+period 2001-max	n=3	bp=16824	unit_test=3/3 (100.0%)	TRF-lenient=0.0%	ULTRA=0.0%	catalog=0.0%	any_support=100.0%	no_support=0 (0 bp)
+
+Largest tandex-only calls with no independent support:
+  chr21:7488690-7489562 period=218 score=562 shift_identity=0.581039755351682
+  chr21:33389049-33389412 period=142 score=434 shift_identity=0.6056338028169015
+  chr21:36989038-36989457 period=140 score=338 shift_identity=0.5
+  chr21:17869617-17869760 period=53 score=140 shift_identity=0.49056603773584906
+  chr21:41458609-41458707 period=38 score=109 shift_identity=0.5
+  chr21:28179198-28179320 period=26 score=97 shift_identity=0.5128205128205128
+  chr21:36247701-36247877 period=23 score=91 shift_identity=0.5
+  chr21:43752395-43752497 period=21 score=83 shift_identity=0.4126984126984127
+  chr21:13890853-13890926 period=26 score=82 shift_identity=0.5384615384615384
+  chr21:36229029-36229103 period=21 score=77 shift_identity=0.5238095238095238

@@ -1,0 +1,7 @@
+CEN180 mask: 2118000 bp in ('Chr1', 14500000, 17500000)
+tool	calls in mask	mask covered by any call	mask covered by calls with period ~178 (176-180)	by period = n x 178 (+-2%)	largest single call
+tandex	34	100.0%	100.0%	100.0%	1553342
+ULTRA-p200	51	100.0%	100.0%	100.0%	176311
+tantan-w200	273	99.9%	99.9%	99.9%	546243
+SRF+minimap2	27086	99.5%	66.4%	99.5%	1691
+longdust	3	100.0%	0.0%	0.0%	2142530

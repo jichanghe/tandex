@@ -1,0 +1,8 @@
+class	Mb	tandex
+hor	3.11	99.8%
+dhor	0.00	100.0%
+mon	0.61	86.8%
+gsat	0.04	98.8%
+censat	0.12	92.6%
+all satellite classes	3.88	97.5%
+alpha satellite, period n x 171	3.72	97.6%

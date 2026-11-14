@@ -1,0 +1,3 @@
+tandex
+*.o
+__pycache__/

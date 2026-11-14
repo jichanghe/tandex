@@ -1,0 +1,11 @@
+class	Mb	tandex	tantan-w200
+hor	2.63	100.0%	11.1%
+dhor	0.10	93.5%	39.8%
+mon	0.26	96.0%	81.0%
+hsat2	0.04	100.0%	40.8%
+hsat3	27.96	100.0%	44.6%
+bsat	0.26	95.0%	19.7%
+gsat	0.03	87.9%	30.8%
+censat	0.35	67.3%	16.2%
+all satellite classes	31.63	99.5%	41.6%
+alpha satellite, period n x 171	2.99	99.4%	18.0%
