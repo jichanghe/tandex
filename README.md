@@ -5,6 +5,7 @@ One C file, no dependencies beyond zlib.
 
 Repository: https://github.com/jichanghe/tandex
 
+[![tests](https://github.com/jichanghe/tandex/actions/workflows/test.yml/badge.svg)](https://github.com/jichanghe/tandex/actions/workflows/test.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24256789.svg)](https://doi.org/10.5281/zenodo.24256789)
 
 ```

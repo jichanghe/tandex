@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use tandex, please cite it as below."
+title: "tandex: fast de novo detection of tandem repeats with period-independent cost"
+type: software
+authors:
+  - family-names: Ji
+    given-names: Changhe
+version: 0.6.0
+date-released: 2026-11-15
+doi: 10.5281/zenodo.24256789
+repository-code: "https://github.com/jichanghe/tandex"
+license: MIT
+keywords:
+  - tandem repeats
+  - satellite DNA
+  - genomics
+  - bioinformatics
