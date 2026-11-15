@@ -147,6 +147,16 @@ def workers_with_small_sequence_after_large_array():
     assert find(calls, 'big', 100_000, 100_000 + len(arr), 178, cover=0.95), [c[:4] for c in calls][:5]
     assert find(calls, 'small', 500, 590, 3), [c[:4] for c in calls if c[0] == 'small']
 
+@test
+def short_option_finds_small_microsatellites():
+    seq = rs(5000) + 'CA' * 7 + rs(5000) + 'AAT' * 5 + rs(5000) + 'ACGTTGCATG' * 2 + rs(5000)
+    path = write('n.fa', [('x', seq)])
+    plain = run([path]); short = run(['-S', path])
+    assert not find(plain, 'x', 5000, 5014, 2) and not find(plain, 'x', 10014, 10029, 3), plain
+    assert find(short, 'x', 5000, 5014, 2) and find(short, 'x', 10014, 10029, 3), short
+    # the lower bar applies to periods of 4 bp or less only
+    assert not find(short, 'x', 15029, 15049, 10), short
+
 failed = 0
 for t in tests:
     try: t(); print('ok   ', t.__name__)

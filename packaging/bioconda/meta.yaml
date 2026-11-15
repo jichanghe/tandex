@@ -1,0 +1,43 @@
+{% set name = "tandex" %}
+{% set version = "0.7.0" %}
+# After tagging v{{ version }} on GitHub, fill in sha256 with:
+#   curl -sL https://github.com/jichanghe/tandex/archive/refs/tags/v0.7.0.tar.gz | sha256sum
+{% set sha256 = "REPLACE_WITH_SHA256_OF_RELEASE_TARBALL" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/jichanghe/tandex/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage(name, max_pin="x.x") }}
+
+requirements:
+  build:
+    - make
+    - {{ compiler('c') }}
+  host:
+    - zlib
+  run:
+    - zlib
+
+test:
+  commands:
+    - tandex -v
+
+about:
+  home: https://github.com/jichanghe/tandex
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: Fast de novo detection of tandem repeats in DNA sequences, from microsatellites to megabase satellite arrays
+  dev_url: https://github.com/jichanghe/tandex
+
+extra:
+  identifiers:
+    - doi:10.5281/zenodo.24256789

@@ -27,12 +27,20 @@
 #include <sys/mman.h>
 #include <zlib.h>
 
-#define VERSION "0.6.0"
+#define VERSION "0.7.0"
 
 static int MA = 2, MI = 3, GP = 5, XD = 40, MINSCORE = 40, EVMIN = 30, BAND = 10, MAXP = 20000, KEEPALL = 0;
 static int THREADS = 1, BEDOUT = 0;
 static FILE *UNITS = NULL;
 static double MINCOPIES = 1.8, MAXEVALUE = -1;
+/* -S: periods of SHORTP or less need only SHORTSC score and SHORTEV evidence. Few periods share the
+ * lower bar, so short microsatellites are found at a modest cost in chance calls. */
+static int SHORT = 0;
+#define SHORTP 4
+#define SHORTSC 22
+#define SHORTEV 14
+#define MSC(p) ((SHORT && (p) <= SHORTP && MINSCORE > SHORTSC) ? SHORTSC : MINSCORE)
+#define EVM(p) ((SHORT && (p) <= SHORTP && EVMIN > SHORTEV) ? SHORTEV : EVMIN)
 /* per-sequence null model for the E-value: ln(chance calls per bp with evidence >= x) = EA + EB * x */
 static double EA, EB, ENULL;
 /* selection margins (tuned on simulated data and on the Broad TR catalog, human chr21) */
@@ -318,14 +326,14 @@ static void refine(const uint8_t *s, int64_t n, const cand_t *c)
         V.v = calloc(p, sizeof *V.v); V.ins = calloc(p, sizeof *V.ins); V.del = calloc(p, sizeof(int));
         if (iter == 0) { /* the seed unit matches itself: skip it, and bail out early on noise */
             Rr = extend(s, n, a + p, 1, P, p, &V); L = extend(s, n, a, -1, P, p, &V);
-            if (Rr.qlen + L.qlen < (MINCOPIES - 1.1) * p || Rr.score + L.score < MINSCORE / 2) { free(V.v); free(V.ins); free(V.del); free(P); free(P2); free(S); MI = mi; GP = gp; XD = xd0; return; }
+            if (Rr.qlen + L.qlen < (MINCOPIES - 1.1) * p || Rr.score + L.score < MSC(p) / 2) { free(V.v); free(V.ins); free(V.del); free(P); free(P2); free(S); MI = mi; GP = gp; XD = xd0; return; }
             for (int i = 0; i < p; i++) V.v[i][P[i]]++;
             Rr.tlen += p; Rr.qlen += p; Rr.mat += p; Rr.score += (int64_t)MA * p;
         } else { Rr = extend(s, n, a, 1, P, p, &V); L = extend(s, n, a, -1, P, p, &V); }
         int p2 = build_cons(P, p, &V, P2);
         free(V.v); free(V.ins); free(V.del);
         if (iter == 3 || p2 < 1 || p2 > cap || (iter > 0 && p2 == p && !memcmp(P, P2, p))) break;
-        if (L.score + Rr.score < MINSCORE / 2) break;
+        if (L.score + Rr.score < MSC(p) / 2) break;
         memcpy(P, P2, p2); p = p2;
     }
     MI = mi; GP = gp; XD = xd;
@@ -345,13 +353,13 @@ static void refine(const uint8_t *s, int64_t n, const cand_t *c)
         /* compare evidence (score beyond the first copy) per base */
         double sq = (double)(R2.score + L2.score - (int64_t)MA * q) / (double)(R2.tlen + L2.tlen + 1);
         double sp = (double)(Rr.score + L.score - (int64_t)MA * p) / (double)(Rr.tlen + L.tlen + 1);
-        if (sq >= RED * sp && R2.score + L2.score >= MINSCORE) {
+        if (sq >= RED * sp && R2.score + L2.score >= MSC(q)) {
             memcpy(P, P2, q); p = q; Rr = R2; L = L2; break;
         }
     }
     int64_t score = L.score + Rr.score;
     double copies = (double)(L.qlen + Rr.qlen) / p;
-    if (score >= MINSCORE && score - (int64_t)MA * p >= EVMIN && copies >= MINCOPIES) {
+    if (score >= MSC(p) && score - (int64_t)MA * p >= EVM(p) && copies >= MINCOPIES) {
         if (nR == mR) { mR = mR ? mR * 2 : 1024; Rs = realloc(Rs, mR * sizeof(res_t)); }
         res_t *r = &Rs[nR];
         r->start = a - L.tlen; r->end = a + Rr.tlen; r->score = score; r->p = p; r->copies = copies;
@@ -382,7 +390,7 @@ static void refine(const uint8_t *s, int64_t n, const cand_t *c)
             int64_t mat = R3.mat + L3.mat, mis = R3.mis + L3.mis, ind = R3.ins + R3.del + L3.ins + L3.del;
             int64_t sc = (int64_t)MA * mat - (int64_t)MI * mis - (int64_t)GP * ind;
             double cp = (double)(R3.qlen + L3.qlen) / d0;
-            if ((cp >= 3.0 || (cp >= MINCOPIES && mis + ind == 0)) && sc >= MINSCORE && sc - (int64_t)MA * d0 >= EVMIN && mat * 10 >= (mat + mis + ind) * 9) {
+            if ((cp >= 3.0 || (cp >= MINCOPIES && mis + ind == 0)) && sc >= MSC(d0) && sc - (int64_t)MA * d0 >= EVM(d0) && mat * 10 >= (mat + mis + ind) * 9) {
                 if (nR == mR) { mR = mR ? mR * 2 : 1024; Rs = realloc(Rs, mR * sizeof(res_t)); }
                 res_t *r = &Rs[nR];
                 r->start = a - L3.tlen; r->end = a + R3.tlen; r->score = sc; r->p = d0; r->copies = cp;
@@ -412,7 +420,7 @@ static int core_rescue(const uint8_t *s, int64_t n, res_t *r)
     int64_t len = R.tlen + L.tlen, mat = R.mat + L.mat, mis = R.mis + L.mis, ind = R.ins + R.del + L.ins + L.del;
     int64_t sc = (int64_t)MA * mat - (int64_t)MI * mis - (int64_t)GP * ind;
     double copies = (double)(R.qlen + L.qlen) / p;
-    if (len * 10 > (r->end - r->start) * 8 || sc < MINSCORE || sc - (int64_t)MA * p < EVMIN || copies < MINCOPIES || (copies < 3.0 && mis + ind > 0)) { free(P); return 0; }
+    if (len * 10 > (r->end - r->start) * 8 || sc < MSC(p) || sc - (int64_t)MA * p < EVM(p) || copies < MINCOPIES || (copies < 3.0 && mis + ind > 0)) { free(P); return 0; }
     r->start = r->anchor - L.tlen; r->end = r->anchor + R.tlen; r->score = sc; r->mat = mat; r->mis = mis; r->indel = ind;
     r->copies = copies; r->ident = (double)mat / (double)(mat + mis + ind); r->aph = (int)(L.qlen % p); r->core = 1;
     int64_t ph = mod(-L.qlen, p);
@@ -802,6 +810,8 @@ static void usage(void)
         "  -e INT   min evidence = score - match*period, i.e. score beyond the first copy [30]\n"
         "  -E NUM   max E-value: chance calls with at least this evidence expected in a random\n"
         "           sequence of the same length and base composition [no limit]\n"
+        "  -S       sensitive for short repeats: periods of 4 bp or less need only score 22 and\n"
+        "           evidence 14 (finds microsatellites of about 11 bp and up; more chance calls)\n"
         "  -c NUM   min copies [1.8]\n"
         "  -m/-x/-g INT  match/mismatch/gap [2/3/5]     -X INT  X-drop [40]     -b INT  band [10]\n"
         "  -t INT   worker processes for sequences longer than 4 Mb [1]\n"
@@ -817,7 +827,7 @@ int main(int argc, char **argv)
 {
     int o;
     const char *ufile = NULL;
-    while ((o = getopt(argc, argv, "m:x:g:X:s:e:E:c:p:b:t:f:u:avh")) != -1) {
+    while ((o = getopt(argc, argv, "m:x:g:X:s:e:E:c:p:b:t:f:u:aSvh")) != -1) {
         switch (o) {
         case 'm': MA = atoi(optarg); break;
         case 'x': MI = atoi(optarg); break;
@@ -833,6 +843,7 @@ int main(int argc, char **argv)
         case 'f': if (!strcmp(optarg, "bed")) BEDOUT = 1; else if (strcmp(optarg, "tsv")) { fprintf(stderr, "tandex: unknown format %s\n", optarg); return 1; } break;
         case 'u': ufile = optarg; break;
         case 'a': KEEPALL = 1; break;
+        case 'S': SHORT = 1; break;
         case 'v': puts(VERSION); return 0;
         default: usage(); return o == 'h' ? 0 : 1;
         }

@@ -11,7 +11,7 @@ Repository: https://github.com/jichanghe/tandex
 ```
 git clone https://github.com/jichanghe/tandex && cd tandex
 make            # or: gcc -O3 -o tandex src/tandex.c -lm -lz
-make test       # 13 regression tests
+make test       # 14 regression tests
 ./tandex genome.fa.gz > repeats.tsv
 ./tandex -t 8 -f bed -u units.bed genome.fa > repeats.bed
 ```
@@ -24,6 +24,7 @@ make test       # 13 regression tests
 | `-s INT` | minimum alignment score | 40 |
 | `-e INT` | minimum evidence (score beyond the first copy, see below) | 30 |
 | `-E NUM` | maximum E-value (see Method, step 5) | no limit |
+| `-S` | sensitive for short repeats: periods of 4 bp or less need only score 22 and evidence 14 | off |
 | `-c NUM` | minimum copy number | 1.8 |
 | `-m/-x/-g INT` | match / mismatch / gap scores | 2 / 3 / 5 |
 | `-X INT`, `-b INT` | X-drop (grows with period), band half-width | 40, 10 |
@@ -85,7 +86,8 @@ differ from a single-process run by about one call in 10,000.
 ## Benchmarks
 
 Machine: 2 cores, 7 GB RAM. All timings single-process unless marked. Results are for version
-0.6.0 unless a table says otherwise; 0.6.0 differs from 0.5.0 only when `-t` is used. Tool versions: TRF 4.10,
+0.6.0 unless a table says otherwise; 0.6.0 differs from 0.5.0 only when `-t` is used, and 0.7.0
+differs from 0.6.0 only when `-S` is used (default output on chr21 is identical). Tool versions: TRF 4.10,
 ULTRA 1.2.2, tantan 49, longdust (git, Nov 2026), SRF (git), mreps 2.6, pytrf 1.5.0.
 Scripts are in `bench/`.
 
@@ -272,6 +274,44 @@ of 200 bp cannot see higher-order repeat units of 1-3 kb, and larger windows are
 TRF finished chr21 in 15 minutes but did not finish chr22 within 45 minutes. (The chr21 and
 chr22 columns were measured with version 0.4; version 0.5 gives the same coverage.)
 
+### 7. Short microsatellites: the `-S` option (version 0.7.0)
+
+By default tandex needs a score of 40, so it skips repeats shorter than about 20 bp. `-S` lowers
+the bar for periods of 4 bp or less only. Catalog loci of 9 to 24 bp on GRCh38 chr21, against
+chance calls on 20 Mb of random sequence:
+
+| Tool | 9-24 bp loci found | Chance calls, uniform random | Chance calls, 70% AT random |
+|---|---|---|---|
+| tandex default | 36.1% | 3 | 126 |
+| **tandex -S** | **59.3%** | 291 | 2,385 |
+| tantan | 59.6% | 788 | 4,663 |
+| ULTRA -p 100 | 59.8% | about 250 (38 in the first 3 Mb, at -p 500) | not run |
+
+With `-S` tandex finds as many short loci as tantan and ULTRA, with fewer chance calls than
+tantan and about as many as ULTRA. Results for loci of 25 bp and longer do not change, and the
+run time is the same (39 s on chr21). On the simulation `-S` raises loci found from 89.5% to
+90.8%, with 1.20 calls per locus instead of 1.08. The thresholds (period 4, score 22, evidence
+14) were chosen on this same chr21 catalog and random sequence, so the table is not a held-out
+test. A sweep of uniform thresholds is in `bench/short_sweep.txt`.
+
+### 8. Scaling
+
+Per-chromosome runs on T2T-CHM13 (`-p 50000`, 2 workers) fit
+
+    time  = 0.61 s per Mb of sequence + 4.0 s per Mb of annotated satellite   (R2 = 0.86)
+    memory = 81 MB + 1.06 MB per Mb of the longest sequence                   (R2 = 0.98)
+
+so run time grows linearly with genome size, plus a cost for the satellite arrays, which are
+aligned base by base. One against two workers (the machine has only 2 cores, so nothing beyond
+2 could be measured):
+
+| Chromosome | 1 worker | 2 workers | Speed-up |
+|---|---|---|---|
+| chr21 (45 Mb) | 107.9 s | 56.2 s | 1.92 |
+| chr18 (81 Mb) | 99.9 s | 49.2 s | 2.03 |
+| chr10 (135 Mb) | 172.0 s | 89.3 s | 1.93 |
+| chr9 (151 Mb, 32 Mb satellite) | 307.3 s | 165.5 s | 1.86 |
+
 ## Where tandex stands
 
 - **Better than the others tested:** sensitivity and period accuracy on the simulation (all
@@ -280,8 +320,8 @@ chr22 columns were measured with version 0.4; version 0.5 gives the same coverag
   and it is far faster than TRF and ULTRA on large satellite arrays.
 - **Not better:** TRF agrees slightly more often with a curated human catalog's motifs (0.4 to
   3.5 points), as does tantan on loci of 100 bp or more; tantan is faster on human chromosomes in
-  a single process (about 1.4 to 2 times); ULTRA and tantan find
-  more repeats shorter than 25 bp.
+  a single process (about 1.4 to 2 times). On repeats shorter than 25 bp tandex is level with
+  ULTRA and tantan only with `-S`; the default setting finds fewer.
 - **Untested:** TRF and ULTRA on CHM13 beyond chr21 (TRF timed out on chr22), TRASH (needs an R
   stack), ULTRA with period limits above 500 (needs more than 7 GB).
 - The simulation is the author's own design, and parameters were tuned on a sibling simulation

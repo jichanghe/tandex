@@ -57,4 +57,5 @@ because the benchmark machine lacked R (TRASH) and memory (ULTRA with long perio
 | `sim2.*` | Simulation |
 | `chr21.*`, `catalog.out`, `validate.out` | GRCh38 chr21 |
 | `cen1.*`, `ath.times` | Arabidopsis Col-CEN |
-| `chr9`, `chr22`, `chrX`, `wg.*`, `chm13*.times` | T2T-CHM13 |
+| `chr9`, `chr22`, `chrX`, `wg.*`, `chm13*.times` | T2T-CHM13 (`chm13_workers.times`: 1 against 2 workers, version 0.7.0) |
+| `short_sweep.txt` | Short-repeat recall against chance calls for uniform thresholds |
