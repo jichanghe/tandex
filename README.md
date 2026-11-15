@@ -5,6 +5,8 @@ One C file, no dependencies beyond zlib.
 
 Repository: https://github.com/jichanghe/tandex
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24256789.svg)](https://doi.org/10.5281/zenodo.24256789)
+
 ```
 git clone https://github.com/jichanghe/tandex && cd tandex
 make            # or: gcc -O3 -o tandex src/tandex.c -lm -lz
@@ -315,6 +317,12 @@ Both print the commands to score the result with the evaluation scripts used for
 
 chr21: nf-core/test-datasets (GRCh38). Catalog: broadinstitute/tandem-repeat-catalog release
 v1.0. Arabidopsis: schatzlab/Col-CEN v1.2. CHM13 v2.0 and censat v2.1: marbl/CHM13.
+
+## Citing
+
+If you use tandex, please cite the archived release:
+
+> tandex 0.6.0. Zenodo. https://doi.org/10.5281/zenodo.24256789
 
 ## Licence
 
