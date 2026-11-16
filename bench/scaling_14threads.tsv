@@ -1,0 +1,7 @@
+# 600 Mb of chimpanzee (first three chromosomes), tandex 0.7.2 -p 50000, 14-thread desktop under WSL
+workers	wall_s	search_s	finish_s	read_other_s	calls
+12	106.7	102.8	2.9	0.9	315847
+8	126.5	122.6	3.0	0.8	315847
+4	187.8	184.1	2.8	0.8	315848
+2	298.8	295.1	2.9	0.8	315848
+1	539.3	535.7	2.9	0.8	315852

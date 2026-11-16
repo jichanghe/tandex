@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 # run_next.sh - three follow-up jobs for the tandex paper. Run in Ubuntu (WSL):
-#     bash /mnt/c/chm13/run_next.sh            # all three parts
-#     bash /mnt/c/chm13/run_next.sh A          # only part A (or B, or C)
+#     bash /mnt/c/chm13/run_next.sh            # parts D, E and C (A and B are already done)
+#     bash /mnt/c/chm13/run_next.sh A          # only one part: A, B, C, D or E
 #
 #  A  list the annotation files of the six ape genomes on GenomeArk (1 minute)
 #  B  measure how tandex scales with 1, 2, 4, 8 and 12 workers (about 40 minutes)
 #  C  run ULTRA with long periods and TRASH on T2T-CHM13 chr21 and score them (hours; best effort)
+#  D  score the tandex ape calls against the published CenSat v2.0 satellite annotation (10 minutes)
+#  E  record the processor layout and the CPU time used with 1, 6 and 12 workers (15 minutes)
 #
 # Needs tandex 0.7.2 in ~/tandex. Each part is independent: if one fails the others still run.
 # Everything is written to C:\chm13\results\next. Large temporary files go to ~/tandex_work.
 set -uo pipefail
 el() { awk -v a="$1" -v b="$2" 'BEGIN { printf "%.1f", b - a }'; }
 
-PARTS=${1:-ABC}
+PARTS=${1:-DEC}
 TANDEX=${TANDEX:-$HOME/tandex/tandex}
 BENCH=$HOME/tandex/bench
 RES=/mnt/c/chm13/results/next
@@ -90,9 +92,11 @@ part_C() {
   cp "$bed" censat.bed
   if [ ! -s chr21.fa ]; then
     echo "extracting chr21 ..."
-    zcat "$gz" | awk '/^>/{ if (f) exit; f = ($1 == ">chr21") } f' > chr21.part && mv chr21.part chr21.fa
+    # awk stops reading once chr21 is complete; zcat then ends with a broken pipe, which is expected
+    zcat "$gz" 2> /dev/null | awk '/^>/{ if (f) exit; f = ($1 == ">chr21") } f' > chr21.part || true
+    [ -s chr21.part ] && mv chr21.part chr21.fa
   fi
-  ls -la chr21.fa
+  ls -la chr21.fa || { echo "C stopped: chr21 could not be extracted"; return; }
 
   echo "--- tandex on this machine"
   s=$(date +%s.%N); "$TANDEX" -p 50000 -t 12 chr21.fa > tandex.tsv; e=$(date +%s.%N)
@@ -118,7 +122,6 @@ part_C() {
         && (cd ULTRA && cmake . >> ../ultra_build.log 2>&1 && make -j 8 >> ../ultra_build.log 2>&1)
     fi
     [ -x ULTRA/ultra ] || { echo "ULTRA build FAILED (see $WORK/rivals/ultra_build.log)"; tail -5 ultra_build.log; exit 1; }
-    ULTRA/ultra --version 2>&1 | head -1
     echo "memory ULTRA says it needs:"; ULTRA/ultra -p 2000 -t 4 --mem chr21.fa 2>&1 | tail -3
     s=$(date +%s.%N)
     timeout 6h ULTRA/ultra -p 2000 -t 4 --tsv --hs --disable_summary -o ultra2000.tsv chr21.fa > /dev/null 2> ultra_run.log
@@ -134,13 +137,19 @@ part_C() {
     command -v Rscript > /dev/null || { echo "TRASH skipped: R (Rscript) not available"; exit 1; }
     Rscript --version 2>&1 | head -1
     if [ ! -d TRASH ]; then git clone --depth 1 https://github.com/vlothec/TRASH > trash_build.log 2>&1; fi
+    DEF=""
     if [ ! -e TRASH/.installed ]; then
-      (cd TRASH && chmod +x TRASH_install.sh && ./TRASH_install.sh) >> trash_build.log 2>&1 && touch TRASH/.installed \
+      # TRASH's own installer could not compile Biostrings here, so take the R packages from conda
+      # and tell TRASH to use the default R library (--def)
+      conda install -y -n tandex_rivals -c conda-forge -c bioconda bioconductor-biostrings r-stringr r-stringdist \
+          r-seqinr r-doparallel r-circlize >> trash_build.log 2>&1 || echo "conda could not install the R packages"
+      (cd TRASH && chmod +x TRASH_install.sh && ./TRASH_install.sh --def) >> trash_build.log 2>&1 && touch TRASH/.installed \
         || { echo "TRASH install FAILED (see $WORK/rivals/trash_build.log)"; tail -8 trash_build.log; exit 1; }
     fi
+    DEF="--def"
     mkdir -p trash_out
     s=$(date +%s.%N)
-    timeout 8h TRASH/TRASH_run.sh "$PWD/chr21.fa" --o "$PWD/trash_out" --par 12 --win 5000 --m 5000 > trash_run.log 2>&1
+    timeout 8h TRASH/TRASH_run.sh "$PWD/chr21.fa" --o "$PWD/trash_out" --par 12 --win 5000 --m 5000 $DEF > trash_run.log 2>&1
     rc=$?; e=$(date +%s.%N)
     printf "TIME TRASH --par 12 --win 5000: %.1f s (exit code %s)\n" "$(el "$s" "$e")" "$rc"
     f=trash_out/all.repeats.from.chr21.fa.csv
@@ -157,8 +166,49 @@ part_C() {
   for f in ultra_build.log ultra_run.log trash_build.log trash_run.log conda_create.log; do [ -s "$f" ] && tail -40 "$f" > "$RES/$f.tail.txt"; done
 }
 
+# ----------------------------------------------------------------------------------------------
+part_D() {
+  echo; echo "##### D: tandex calls against the published ape satellite annotation (CenSat v2.0) #####"
+  local A=$WORK/ape_annot; mkdir -p "$A"
+  if [ ! -x "$WORK/venv/bin/python" ]; then python3 -m venv "$WORK/venv" > /dev/null 2>&1; fi
+  "$WORK/venv/bin/python" -c 'import pyBigWig' 2> /dev/null || "$WORK/venv/bin/pip" install -q pyBigWig > "$A/pip.log" 2>&1
+  "$WORK/venv/bin/python" -c 'import pyBigWig' 2> /dev/null || { echo "D stopped: pyBigWig could not be installed (see $A/pip.log)"; tail -3 "$A/pip.log"; return; }
+  local base=https://genomeark.s3.amazonaws.com/species
+  : > "$RES/apes_censat.txt"
+  while read -r name dir id date ver; do
+    [ -n "$name" ] || continue
+    local calls=/mnt/c/chm13/results/apes/$name.tandex.tsv.gz sizes=/mnt/c/chm13/results/apes/$name.chromsizes.tsv
+    [ -s "$calls" ] && [ -s "$sizes" ] || { echo "$name: calls not found, skipped"; continue; }
+    [ -s "$A/$id.bb" ]  || curl -sL --fail --retry 3 -o "$A/$id.bb"  "$base/$dir/$id/assembly_curated/repeats/${id}_${ver}_CenSat_v2.0.bb" || { echo "$name: annotation download failed"; continue; }
+    [ -s "$A/$id.fai" ] || curl -sL --fail --retry 3 -o "$A/$id.fai" "$base/$dir/$id/assembly_curated/$id.pri.cur.$date.fasta.gz.fai" || { echo "$name: .fai download failed"; continue; }
+    "$WORK/venv/bin/python" "$BENCH/ape_censat_eval.py" "$name" "$A/$id.bb" "$A/$id.fai" "$sizes" "$calls" | tee -a "$RES/apes_censat.txt"
+    echo | tee -a "$RES/apes_censat.txt"
+  done <<'LIST'
+chimpanzee Pan_troglodytes mPanTro3 20231122 v2.0
+bonobo Pan_paniscus mPanPan1 20231122 v2.0
+gorilla Gorilla_gorilla mGorGor1 20231122 v2.0
+sumatran_orangutan Pongo_abelii mPonAbe1 20231205 v2.0
+bornean_orangutan Pongo_pygmaeus mPonPyg2 20231122 v2.0
+siamang Symphalangus_syndactylus mSymSyn1 20240514 v2.1
+LIST
+}
+
+# ----------------------------------------------------------------------------------------------
+part_E() {
+  echo; echo "##### E: processor layout and CPU time with 12 workers #####"
+  lscpu | grep -E "Model name|^CPU\(s\)|Thread|Core|Socket|MHz" | tee "$RES/cpu.txt"
+  local sub=$WORK/chimp_sub.fa
+  [ -s "$sub" ] || { echo "E skipped: run part B first"; return; }
+  for t in 1 6 12; do
+    echo "tandex -p 50000 -t $t (wall, user and system CPU seconds):"
+    ( TIMEFORMAT="workers $t  wall %R  user %U  sys %S"; time "$TANDEX" -p 50000 -t "$t" "$sub" > /dev/null ) 2>&1 | tee -a "$RES/cpu.txt"
+  done
+}
+
 case "$PARTS" in *A*) part_A;; esac
 case "$PARTS" in *B*) part_B;; esac
+case "$PARTS" in *D*) part_D;; esac
+case "$PARTS" in *E*) part_E;; esac
 case "$PARTS" in *C*) part_C;; esac
 echo; echo "=== finished $(date) ==="
 echo "Results are in C:\\chm13\\results\\next  (tell Claude when this line appears)"

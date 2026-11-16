@@ -340,9 +340,18 @@ the most alpha satellite. Both patterns are known: the 32-bp subterminal satelli
 of African great apes, absent from human and orangutan, and the alpha-satellite subterminal caps
 of the siamang (Koga et al. 2011; Yoo et al. 2026, Genome Research 36:38). No annotation was
 used, and these numbers have not been compared base by base with the published satellite tracks.
-The apes ran on a 14-core desktop reading from a Windows drive through WSL; 12 workers were
-about 3 times faster than 2 workers on CHM13 on another machine, so scaling past a few workers
-is well short of linear and has not been profiled.
+Workers on a 14-thread desktop (600 Mb of chimpanzee, `-p 50000`, version 0.7.2):
+
+| Workers | 1 | 2 | 4 | 8 | 12 |
+|---|---|---|---|---|---|
+| Wall time | 539 s | 299 s | 188 s | 127 s | 107 s |
+| Speed-up | 1 | 1.80 | 2.87 | 4.26 | 5.05 |
+
+Reading and the final single-process step took under 4 s in every run, and the slowest 2 Mb
+chunk took 18 s, so neither explains the shortfall. On the 2-core benchmark machine the total
+CPU time rose only 4 to 8% between 1 and 12 workers (CHM13 chr21 and chr9), so extra workers
+repeat little work. Whether the desktop's shortfall comes from its processor (slower or shared
+cores) has not been established yet; `bench/run_next.sh E` records the CPU time needed to tell.
 
 Setting `TANDEX_PROFILE=1` in the environment (version 0.7.2) prints to stderr how long each
 sequence spent in the parallel search and in the final single-process step, and every 2 Mb
