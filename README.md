@@ -312,6 +312,13 @@ aligned base by base. One against two workers (the machine has only 2 cores, so 
 | chr10 (135 Mb) | 172.0 s | 89.3 s | 1.93 |
 | chr9 (151 Mb, 32 Mb satellite) | 307.3 s | 165.5 s | 1.86 |
 
+Version 0.7.1 fixes a slow case found on the Sumatran orangutan Y chromosome (68 Mb), which
+holds a 13 Mb array of a 5-bp satellite at 76% identity with local higher-order structure.
+Version 0.7.0 re-aligned thousands of candidate periods inside that array and did not finish in
+2.5 hours with 12 workers; 0.7.1 takes 195 s with 2 workers and covers the same bases. Output on
+GRCh38 chr21, the simulation and random sequence is identical to 0.7.0, and CHM13 satellite
+coverage on chr21, chr9 and chrY is unchanged. There is no regression test for this case yet.
+
 ## Where tandex stands
 
 - **Better than the others tested:** sensitivity and period accuracy on the simulation (all

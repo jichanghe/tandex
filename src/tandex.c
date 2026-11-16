@@ -27,7 +27,7 @@
 #include <sys/mman.h>
 #include <zlib.h>
 
-#define VERSION "0.7.0"
+#define VERSION "0.7.1"
 
 static int MA = 2, MI = 3, GP = 5, XD = 40, MINSCORE = 40, EVMIN = 30, BAND = 10, MAXP = 20000, KEEPALL = 0;
 static int THREADS = 1, BEDOUT = 0;
@@ -60,6 +60,12 @@ typedef struct { int64_t tlen, qlen, score, mat, mis, ins, del; } ext_t;
 static int64_t ROWMAX = INT64_MAX;
 /* extension may not run past these positions (set when a big array next door is already called) */
 static int64_t LIMLO = 0, LIMHI = INT64_MAX;
+/* per 32-kb region: windowed refinements inside a large call that only re-found a period already
+ * called there. After REDMAX of them, further multiples of that call's period are skipped. */
+static int *redun;
+#define REDBIN (16 * 2048)
+#define REDMAX 8
+#define REDCOVER 100000
 static uint8_t *TB; static size_t TBcap; static int64_t *LO; static size_t LOcap;
 /* unit boundaries (per-copy coordinates), collected during traceback when BON is set */
 static int BON = 0; static int64_t BPH, *BND; static size_t nB, mB;
@@ -575,6 +581,7 @@ static void find_raw(const uint8_t *s, int64_t n, tier_t *T, int nt, int64_t bas
     head = malloc(nb * sizeof(int));
     fhead = malloc(nb * sizeof(int)); nF = 0;
     for (int64_t i = 0; i < nb; i++) head[i] = fhead[i] = -1;
+    redun = calloc(n / REDBIN + 2, sizeof(int));
     for (int t = 0; t < nt; t++) seed(&T[t], s, n, base, stamp, cs, ce);
     if (nC) { /* exact and coarse chains often emit the same (anchor, period): keep the strongest */
         qsort(C, nC, sizeof(cand_t), cmp_anchor);
@@ -587,6 +594,15 @@ static void find_raw(const uint8_t *s, int64_t n, tier_t *T, int nt, int64_t bas
     board_seen = 0;
     for (size_t i = 0; i < nC; i++) {
         board_import();
+        {
+            int64_t ax = C[i].anchor < 0 ? 0 : C[i].anchor; int skip = 0;
+            if (redun[ax / REDBIN] >= REDMAX)
+                for (int x = head[ax / BIN]; x >= 0 && !skip; x = nodes[x].next) {
+                    res_t *r = &Rs[nodes[x].r];
+                    if (r->start <= ax && r->end >= ax + C[i].d && r->end - r->start >= REDCOVER && near_multiple(C[i].d, r->p) >= 1) skip = 1;
+                }
+            if (skip) continue;
+        }
         int pr = -1, cv = covered(&C[i], nb, &pr);
         if (cv == 1 || (cv >= 2 && !probe_ok(s, n, &C[i], &Rs[pr], cv == 3))) continue;
         set_barriers(&C[i], nb);
@@ -597,6 +613,17 @@ static void find_raw(const uint8_t *s, int64_t n, tier_t *T, int nt, int64_t bas
          * own right), or any period that fits clearly better. Otherwise it is dropped and its period is not tried there again. */
         int bc = best_cover(&C[i]);
         int64_t a0 = C[i].anchor < 0 ? 0 : C[i].anchor, W = 32 * (int64_t)C[i].d > 10000 ? 32 * (int64_t)C[i].d : 10000;
+        if (bc >= 0 && Rs[bc].end - Rs[bc].start <= 4 * W) {
+            /* the densest cover is a small local call, but the anchor may still lie inside a huge
+             * array: then that array decides, or every such candidate is aligned end to end */
+            int big = -1;
+            for (int x = head[a0 / BIN]; x >= 0; x = nodes[x].next) {
+                res_t *r = &Rs[nodes[x].r];
+                if (r->start > a0 || r->end < a0 + C[i].d || r->end - r->start <= 4 * W) continue;
+                if (big < 0 || r->end - r->start > Rs[big].end - Rs[big].start) big = nodes[x].r;
+            }
+            if (big >= 0) bc = big;
+        }
         if (bc >= 0 && Rs[bc].end - Rs[bc].start > 4 * W) {
             int64_t lo = a0 - W > LIMLO ? a0 - W : LIMLO, hi = a0 + C[i].d + W < LIMHI ? a0 + C[i].d + W : LIMHI;
             int64_t klo = LIMLO, khi = LIMHI;
@@ -614,17 +641,18 @@ static void find_raw(const uint8_t *s, int64_t n, tier_t *T, int nt, int64_t bas
                     drop_last();
                     if (better) refine(s, n, &C[i]);
                     else {
+                        redun[a0 / REDBIN]++;
                         if (q->nrej == q->mrej) { q->mrej = q->mrej ? q->mrej * 2 : 16; q->rej = realloc(q->rej, q->mrej * sizeof(int)); }
                         q->rej[q->nrej++] = C[i].d; LIMLO = 0; LIMHI = INT64_MAX; continue;
                     }
-                }
+                } else if (Rs[bc].end - Rs[bc].start >= REDCOVER && cover_has_period(a0, C[i].d, r->p, (int)nR - 1)) redun[a0 / REDBIN]++;
             }
         } else refine(s, n, &C[i]);
         LIMLO = 0; LIMHI = INT64_MAX;
         for (size_t k = r0; k < nR; k++) board_publish(&Rs[k]);
         if (nR == r0) fail_add(C[i].anchor < 0 ? 0 : C[i].anchor, C[i].d);
     }
-    free(head); free(fhead);
+    free(head); free(fhead); free(redun);
 }
 
 /* per-copy coordinates: redo the final alignment of a call and record where each unit starts */
