@@ -44,6 +44,7 @@ point at the machine the benchmarks were run on (2 cores, 7 GB); edit them befor
 |---|---|
 | `run_apes.sh` | Downloads the six T2T ape assemblies from NCBI, runs tandex, writes per-genome summaries |
 | `classify_periods.py` | Bases in repeats by period family, from a tandex TSV |
+| `run_next.sh` | Lists ape annotation files on GenomeArk, measures scaling with workers, runs ULTRA (long periods) and TRASH on CHM13 chr21 |
 | `apes_seven.tsv` | Results for human CHM13 and the six apes |
 
 ## Not yet run

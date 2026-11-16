@@ -26,8 +26,9 @@
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <zlib.h>
+#include <time.h>
 
-#define VERSION "0.7.1"
+#define VERSION "0.7.2"
 
 static int MA = 2, MI = 3, GP = 5, XD = 40, MINSCORE = 40, EVMIN = 30, BAND = 10, MAXP = 20000, KEEPALL = 0;
 static int THREADS = 1, BEDOUT = 0;
@@ -780,9 +781,14 @@ static void finish(const char *name, const uint8_t *s, int64_t n)
     free(ord); free(head);
 }
 
+/* TANDEX_PROFILE=1 in the environment prints where the wall time goes (stderr) */
+static int PROF; static double PT[3];
+static double wall(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec + t.tv_nsec * 1e-9; }
+
 static void process(const char *name, const uint8_t *s, int64_t n, tier_t *T, int nt, int64_t base, int64_t stamp)
 {
     nR = 0;
+    double t0 = wall(), t1;
     if (BOARD) { BOARD->n = 0; BOARD->lock = 0; } /* the board is per sequence */
     if (THREADS <= 1 || n < 2 * CHUNK) {
         find_raw(s, n, T, nt, base, stamp, 0, n);
@@ -801,7 +807,9 @@ static void process(const char *name, const uint8_t *s, int64_t n, tier_t *T, in
             if (pid < 0) { perror("fork"); exit(1); }
             if (pid == 0) {
                 int64_t cs = (int64_t)c * CHUNK, ce = cs + CHUNK < n ? cs + CHUNK : n;
+                double w0 = wall();
                 find_raw(s, n, T, nt, base, stamp, cs, ce);
+                if (PROF && wall() - w0 >= 5) fprintf(stderr, "profile chunk\t%s\t%ld\t%.1f s\n", name, (long)cs, wall() - w0);
                 for (size_t i = 0; i < nR; i++) if (!Rs[i].imported) { fwrite(&Rs[i], sizeof(res_t), 1, tmp[c]); fwrite(Rs[i].cons, 1, Rs[i].p, tmp[c]); }
                 fflush(tmp[c]);
                 _exit(0);
@@ -824,8 +832,11 @@ static void process(const char *name, const uint8_t *s, int64_t n, tier_t *T, in
         }
         free(tmp);
     }
+    t1 = wall(); PT[0] += t1 - t0;
     set_null(s, n);
     finish(name, s, n);
+    PT[1] += wall() - t1;
+    if (PROF) fprintf(stderr, "profile seq\t%s\t%ld bp\tsearch %.1f s\tfinish %.1f s\n", name, (long)n, t1 - t0, wall() - t1);
 }
 
 static void usage(void)
@@ -855,6 +866,7 @@ int main(int argc, char **argv)
 {
     int o;
     const char *ufile = NULL;
+    double tstart = wall(); PROF = getenv("TANDEX_PROFILE") != NULL;
     while ((o = getopt(argc, argv, "m:x:g:X:s:e:E:c:p:b:t:f:u:aSvh")) != -1) {
         switch (o) {
         case 'm': MA = atoi(optarg); break;
@@ -930,5 +942,6 @@ int main(int argc, char **argv)
     if (have && n) process(name, s, n, T, nt, base, ++stamp);
     gzclose(f);
     if (UNITS) fclose(UNITS);
+    if (PROF) fprintf(stderr, "profile total\t%.1f s\tsearch %.1f s\tfinish %.1f s\tread and other %.1f s\n", wall() - tstart, PT[0], PT[1], wall() - tstart - PT[0] - PT[1]);
     return 0;
 }

@@ -344,6 +344,10 @@ The apes ran on a 14-core desktop reading from a Windows drive through WSL; 12 w
 about 3 times faster than 2 workers on CHM13 on another machine, so scaling past a few workers
 is well short of linear and has not been profiled.
 
+Setting `TANDEX_PROFILE=1` in the environment (version 0.7.2) prints to stderr how long each
+sequence spent in the parallel search and in the final single-process step, and every 2 Mb
+chunk that took 5 s or more. Output is unchanged.
+
 ## Where tandex stands
 
 - **Better than the others tested:** sensitivity and period accuracy on the simulation (all
