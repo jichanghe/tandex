@@ -319,6 +319,31 @@ Version 0.7.0 re-aligned thousands of candidate periods inside that array and di
 GRCh38 chr21, the simulation and random sequence is identical to 0.7.0, and CHM13 satellite
 coverage on chr21, chr9 and chrY is unchanged. There is no regression test for this case yet.
 
+### 9. Seven ape genomes
+
+Human T2T-CHM13 plus the six telomere-to-telomere ape assemblies (`bench/run_apes.sh`,
+`bench/classify_periods.py`, results in `bench/apes_seven.tsv`). Megabases by period family;
+families are assigned from the period alone and nested calls overlap, so they do not add up.
+
+| Genome | Size | In tandem repeats | 32-bp family | 171-bp family (alpha) | 5-bp family | Run time |
+|---|---|---|---|---|---|---|
+| Human CHM13 | 3.12 Gb | 381 Mb (12.2%) | 4 | 86 | 125 | 47 min, 2 workers |
+| Chimpanzee | 3.18 Gb | 428 Mb (13.5%) | 136 | 78 | 65 | 13 min, 12 workers |
+| Bonobo | 3.24 Gb | 490 Mb (15.1%) | 141 | 75 | 118 | 18 min |
+| Gorilla | 3.55 Gb | 769 Mb (21.7%) | 273 | 134 | 192 | 18 min |
+| Sumatran orangutan | 3.26 Gb | 456 Mb (14.0%) | 4 | 182 | 118 | 17 min |
+| Bornean orangutan | 3.22 Gb | 420 Mb (13.1%) | 5 | 146 | 122 | 17 min |
+| Siamang | 3.26 Gb | 536 Mb (16.4%) | 3 | 376 | 33 | 11 min |
+
+The 32-bp family is large only in chimpanzee, bonobo and gorilla, and the siamang carries by far
+the most alpha satellite. Both patterns are known: the 32-bp subterminal satellite (pCht/StSat)
+of African great apes, absent from human and orangutan, and the alpha-satellite subterminal caps
+of the siamang (Koga et al. 2011; Yoo et al. 2026, Genome Research 36:38). No annotation was
+used, and these numbers have not been compared base by base with the published satellite tracks.
+The apes ran on a 14-core desktop reading from a Windows drive through WSL; 12 workers were
+about 3 times faster than 2 workers on CHM13 on another machine, so scaling past a few workers
+is well short of linear and has not been profiled.
+
 ## Where tandex stands
 
 - **Better than the others tested:** sensitivity and period accuracy on the simulation (all

@@ -38,6 +38,14 @@ point at the machine the benchmarks were run on (2 cores, 7 GB); edit them befor
 | `gap_check.py` | Tests whether annotated satellite that tandex leaves uncovered is actually periodic |
 | `run_group.sh` | Runs tandex chromosome by chromosome on the whole genome |
 
+## Seven ape genomes
+
+| File | What it does |
+|---|---|
+| `run_apes.sh` | Downloads the six T2T ape assemblies from NCBI, runs tandex, writes per-genome summaries |
+| `classify_periods.py` | Bases in repeats by period family, from a tandex TSV |
+| `apes_seven.tsv` | Results for human CHM13 and the six apes |
+
 ## Not yet run
 
 These two were written from the tools' documentation and have not been tested end to end,
