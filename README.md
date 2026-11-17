@@ -339,7 +339,21 @@ The 32-bp family is large only in chimpanzee, bonobo and gorilla, and the siaman
 the most alpha satellite. Both patterns are known: the 32-bp subterminal satellite (pCht/StSat)
 of African great apes, absent from human and orangutan, and the alpha-satellite subterminal caps
 of the siamang (Koga et al. 2011; Yoo et al. 2026, Genome Research 36:38). No annotation was
-used, and these numbers have not been compared base by base with the published satellite tracks.
+used to make the calls. Against the project's own satellite annotation (CenSat v2.0; sequence
+names paired by length), tandex covers 96.4 to 99.0% of annotated satellite in each ape:
+
+| Genome | Annotated satellite | Covered | Subterminal | Active HOR | HSat3 | Beta sat. | rDNA |
+|---|---|---|---|---|---|---|---|
+| Chimpanzee | 286 Mb | 97.1% | 100.0% | 99.8% | 100.0% | 78.5% | 73.2% |
+| Bonobo | 345 Mb | 97.6% | 100.0% | 99.8% | 100.0% | 79.6% | 65.4% |
+| Gorilla | 605 Mb | 99.0% | 100.0% | 99.9% | 100.0% | 96.7% | 83.2% |
+| Sumatran orangutan | 294 Mb | 96.6% | - | 99.7% | 99.8% | 61.1% | 64.1% |
+| Bornean orangutan | 265 Mb | 96.4% | - | 99.6% | 99.8% | 62.4% | 62.0% |
+| Siamang | 395 Mb | 98.9% | 99.9% | 98.8% | 99.9% | 71.6% | 89.6% |
+
+The calls inside the subterminal class have period 32 in the African apes and 171 in the
+siamang. Beta satellite and rDNA are covered less well than in human CHM13 (93% and 98% on
+chr21); the cause has not been examined. No other tool was run on the apes.
 Workers on a 14-thread desktop (600 Mb of chimpanzee, `-p 50000`, version 0.7.2):
 
 | Workers | 1 | 2 | 4 | 8 | 12 |

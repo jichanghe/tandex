@@ -29,7 +29,7 @@ flat = collections.defaultdict(list)                                    # seq ->
 def add(c, s, e, n):
     if c not in m: return
     k = cls(n)
-    if k.lower() in ('ct', 'gap', ''): return
+    if k.lower() == 'ct' or k.lower().startswith('gap') or not k: return
     ann[k][m[c]].append((s, e)); flat[m[c]].append((s, e, k))
 if annf.endswith('.bed'):
     for l in open(annf):

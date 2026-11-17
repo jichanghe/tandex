@@ -1,0 +1,9 @@
+# tandex 0.7.1 -p 50000 calls against the T2T primates CenSat v2.0 annotation (GenomeArk), primary assemblies.
+# Classes 'ct' and gaps left out. Full per-class output: bench/ape_censat_eval.py.
+genome	annotated_satellite_Mb	covered_%	subTerm_Mb	subTerm_%	active_hor_Mb	active_hor_%	HSat3_Mb	HSat3_%	bSat_%	rDNA_%	cenSat_other_%
+chimpanzee	286.09	97.1	135.66	100.0	54.10	99.8	27.23	100.0	78.5	73.2	80.7
+bonobo	345.04	97.6	140.59	100.0	37.69	99.8	63.55	100.0	79.6	65.4	81.7
+gorilla	604.97	99.0	266.79	100.0	100.99	99.9	129.37	100.0	96.7	83.2	82.3
+sumatran_orangutan	293.95	96.6	-	-	133.06	99.7	94.00	99.8	61.1	64.1	79.1
+bornean_orangutan	264.95	96.4	-	-	96.71	99.6	98.94	99.8	62.4	62.0	81.0
+siamang	394.69	98.9	334.22	99.9	29.34	98.8	12.87	99.9	71.6	89.6	62.3
