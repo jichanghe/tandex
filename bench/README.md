@@ -49,10 +49,10 @@ point at the machine the benchmarks were run on (2 cores, 7 GB); edit them befor
 | `scaling_14threads.tsv` | Wall time with 1 to 12 workers on a 14-thread desktop |
 | `apes_seven.tsv` | Results for human CHM13 and the six apes |
 
-## Not yet run
+## ULTRA with long periods and TRASH
 
-These two were written from the tools' documentation and have not been tested end to end,
-because the benchmark machine lacked R (TRASH) and memory (ULTRA with long periods).
+Run on CHM13 chr21 by `run_next.sh` (part C) and `run_fix.sh`; results in `chr21_rivals.txt`.
+`run_trash.sh` and `run_ultra_long.sh` are the earlier stand-alone drafts and were not used.
 
 | File | What it does |
 |---|---|

@@ -372,7 +372,11 @@ needed to settle it.
 
 ULTRA with long periods (`-p 2000`, 4 threads) on CHM13 chr21 took 9,293 s and covered 71.4% of
 annotated satellite, against 14 s and 96.8% for tandex with 12 workers on the same machine
-(`bench/chr21_ultra_long.txt`). TRASH could not be installed there yet.
+(`bench/chr21_rivals.txt`). TRASH (`--par 12 --win 5000 --m 5000`) took 12,176 s and covered
+46.6%; it is built for satellites with units up to a few kb, so rDNA (15.2%) is outside its
+range, but it was also low on HSat1A (21.1%) and HSat3 (66.3%). TRASH was run with one setting
+only, and its output was converted by our own script, which has been checked only for
+plausibility (56,044 arrays).
 
 Setting `TANDEX_PROFILE=1` in the environment (version 0.7.2) prints to stderr how long each
 sequence spent in the parallel search and in the final single-process step, and every 2 Mb
