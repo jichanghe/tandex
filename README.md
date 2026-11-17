@@ -348,10 +348,17 @@ Workers on a 14-thread desktop (600 Mb of chimpanzee, `-p 50000`, version 0.7.2)
 | Speed-up | 1 | 1.80 | 2.87 | 4.26 | 5.05 |
 
 Reading and the final single-process step took under 4 s in every run, and the slowest 2 Mb
-chunk took 18 s, so neither explains the shortfall. On the 2-core benchmark machine the total
-CPU time rose only 4 to 8% between 1 and 12 workers (CHM13 chr21 and chr9), so extra workers
-repeat little work. Whether the desktop's shortfall comes from its processor (slower or shared
-cores) has not been established yet; `bench/run_next.sh E` records the CPU time needed to tell.
+chunk took 18 s, so neither explains the shortfall. The shortfall is in CPU time per worker, not in idle workers: total CPU time on that machine
+was 528 s with 1 worker, 752 s with 6 and 1,043 s with 12, so each worker ran about half as
+fast at 12. The processor is a low-power laptop chip (Intel Core Ultra 7 255U) on which most
+cores are slower than the one a single worker gets. On the 2-core benchmark machine total CPU
+time rose only 4 to 8% between 1 and 12 workers, so tandex itself repeats little work. Memory
+or cache contention between workers has not been ruled out; a server with uniform cores is
+needed to settle it.
+
+ULTRA with long periods (`-p 2000`, 4 threads) on CHM13 chr21 took 9,293 s and covered 71.4% of
+annotated satellite, against 14 s and 96.8% for tandex with 12 workers on the same machine
+(`bench/chr21_ultra_long.txt`). TRASH could not be installed there yet.
 
 Setting `TANDEX_PROFILE=1` in the environment (version 0.7.2) prints to stderr how long each
 sequence spent in the parallel search and in the final single-process step, and every 2 Mb
