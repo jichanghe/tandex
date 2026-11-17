@@ -6,7 +6,7 @@ One C file, no dependencies beyond zlib.
 Repository: https://github.com/jichanghe/tandex
 
 [![tests](https://github.com/jichanghe/tandex/actions/workflows/test.yml/badge.svg)](https://github.com/jichanghe/tandex/actions/workflows/test.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24259093.svg)](https://doi.org/10.5281/zenodo.24259093)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24316533.svg)](https://doi.org/10.5281/zenodo.24316533)
 
 ```
 git clone https://github.com/jichanghe/tandex && cd tandex
@@ -441,7 +441,7 @@ v1.0. Arabidopsis: schatzlab/Col-CEN v1.2. CHM13 v2.0 and censat v2.1: marbl/CHM
 
 If you use tandex, please cite the archived release:
 
-> tandex 0.7.0. Zenodo. https://doi.org/10.5281/zenodo.24259093
+> tandex 0.7.2. Zenodo. https://doi.org/10.5281/zenodo.24316533
 
 ## Licence
 

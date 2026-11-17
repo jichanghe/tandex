@@ -5,9 +5,9 @@ type: software
 authors:
   - family-names: Ji
     given-names: Changhe
-version: 0.7.0
-date-released: 2026-11-15
-doi: 10.5281/zenodo.24259093
+version: 0.7.2
+date-released: 2026-11-17
+doi: 10.5281/zenodo.24316533
 repository-code: "https://github.com/jichanghe/tandex"
 license: MIT
 keywords:
