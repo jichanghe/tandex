@@ -353,7 +353,12 @@ names paired by length), tandex covers 96.4 to 99.0% of annotated satellite in e
 
 The calls inside the subterminal class have period 32 in the African apes and 171 in the
 siamang. Beta satellite and rDNA are covered less well than in human CHM13 (93% and 98% on
-chr21); the cause has not been examined. No other tool was run on the apes.
+chr21). The shortfall sits in small annotated pieces: in chimpanzee, Sumatran orangutan and
+gorilla, beta-satellite intervals of 100 kb or more are covered 97 to 100%, those under 20 kb
+only 41 to 48%; rDNA intervals under 100 kb (fewer than about two 45-kb units, so not tandem
+at all) are covered 1 to 44%, those of 100 kb or more 70 to 96%. The apes have a larger share
+of such small pieces than human CHM13, whose rDNA is all in arrays over 100 kb. No other tool
+was run on the apes.
 Workers on a 14-thread desktop (600 Mb of chimpanzee, `-p 50000`, version 0.7.2):
 
 | Workers | 1 | 2 | 4 | 8 | 12 |
@@ -374,7 +379,10 @@ ULTRA with long periods (`-p 2000`, 4 threads) on CHM13 chr21 took 9,293 s and c
 annotated satellite, against 14 s and 96.8% for tandex with 12 workers on the same machine
 (`bench/chr21_rivals.txt`). TRASH (`--par 12 --win 5000 --m 5000`) took 12,176 s and covered
 46.6%; it is built for satellites with units up to a few kb, so rDNA (15.2%) is outside its
-range, but it was also low on HSat1A (21.1%) and HSat3 (66.3%). TRASH was run with one setting
+range. Its low HSat1A figure (21.1%) comes from one stretch, chr21:1,117,360-1,953,075, where
+TRASH reported nothing at all (the two other HSat1A arrays are covered 99.9 and 100%); whether
+that is a TRASH limit or a failure of our installation is not known. In HSat3 it reports
+thousands of short arrays of period 5 to 8 with gaps between them (50 to 80% per array). TRASH was run with one setting
 only, and its output was converted by our own script, which has been checked only for
 plausibility (56,044 arrays).
 
