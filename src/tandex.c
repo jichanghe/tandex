@@ -28,7 +28,7 @@
 #include <zlib.h>
 #include <time.h>
 
-#define VERSION "0.7.2"
+#define VERSION "0.8.0"
 
 static int MA = 2, MI = 3, GP = 5, XD = 40, MINSCORE = 40, EVMIN = 30, BAND = 10, MAXP = 20000, KEEPALL = 0;
 static int THREADS = 1, BEDOUT = 0;
@@ -143,15 +143,54 @@ static int dp_segment(const uint8_t *s, int64_t a, int dir, int64_t avail,
     return term;
 }
 
+/* Re-registration for long periods. Arrays of higher-order repeats hold copies that lack or repeat
+ * whole sub-units, which shifts the phase by far more than the band. Before each segment the next
+ * JWIN bases are compared with the pattern at the current phase; if another phase fits them clearly
+ * better (at least 3 fewer mismatches, and at most 5), the alignment jumps to that phase at a cost of JPEN. */
+#define JMIN 300
+#define JWIN 64
+#define JSEG 1024
+#define JPEN 30
+static int JUMPS = 0; /* set by -H */
+static int win_mis(const uint8_t *s, int64_t x, const uint8_t *P, int p, int64_t q, int maxmis)
+{
+    int m = 0;
+    q = mod(q, p);
+    for (int i = 0; i < JWIN; i++) {
+        if (s[x + i] != P[q] || s[x + i] > 3) { if (++m > maxmis) return m; }
+        if (++q == p) q = 0;
+    }
+    return m;
+}
 static ext_t extend(const uint8_t *s, int64_t n, int64_t a, int dir, const uint8_t *P, int p, votes_t *V)
 {
     ext_t o; memset(&o, 0, sizeof o);
+    int64_t shift = 0; int jm = JUMPS && p >= JMIN;
     for (;;) {
         int64_t pos = dir > 0 ? a + o.tlen : a - o.tlen;
         int64_t avail = dir > 0 ? (n < LIMHI ? n : LIMHI) - pos : pos - LIMLO;
-        int64_t ph = dir > 0 ? mod(o.qlen, p) : mod(-o.qlen, p);
+        int64_t ph = dir > 0 ? mod(o.qlen + shift, p) : mod(-o.qlen + shift, p);
         if (avail > ROWMAX - o.tlen) avail = ROWMAX - o.tlen;
         if (avail <= 0) break;
+        if (jm) {
+            if (o.tlen > 0 && avail >= JWIN) {
+                int64_t x = dir > 0 ? pos : pos - JWIN, q0 = dir > 0 ? ph : ph - JWIN;
+                int cur = JWIN;
+                for (int dl = -3; dl <= 3; dl++) { int m = win_mis(s, x, P, p, q0 + dl, cur); if (m < cur) cur = m; }
+                if (cur >= 3) { /* not a near-perfect fit here: is there a phase that fits clearly better? */
+                    int bm = cur - 2 < 6 ? cur - 2 : 6; int64_t bq = -1;
+                    for (int64_t q = 0; q < p; q++) { int m = win_mis(s, x, P, p, q, bm - 1); if (m < bm) { bm = m; bq = q; } }
+                    if (bq >= 0) {
+                        int64_t nph = dir > 0 ? bq : mod(bq + JWIN, p);
+                        shift += nph - ph; ph = nph; o.score -= JPEN;
+                    }
+                }
+            }
+            int64_t before = o.tlen, seg = avail > JSEG ? JSEG : avail;
+            int t = dp_segment(s, pos, dir, seg, P, p, ph, V, &o);
+            if (o.tlen == before || (t && seg == avail)) break; /* no progress, or the end of what may be aligned */
+            continue;
+        }
         if (dp_segment(s, pos, dir, avail, P, p, ph, V, &o)) break;
     }
     return o;
@@ -258,7 +297,9 @@ static int covered(const cand_t *c, int64_t nb, int *probe)
         int m = near_multiple(c->d, r->p);
         if (m == 1 || near_multiple(c->d, r->d0) == 1) return 1;   /* same period, or a candidate like the one that gave r */
         for (int k = 0; k < r->nrej; k++) if (near_multiple(c->d, r->rej[k]) == 1) return 1; /* period already tried here and rejected */
-        if (m > 1 && c->d > 100 && (r->ident >= 0.85 || c->run < 24)) return 1;
+        /* a multiple of r's period (a higher-order repeat?) with only short exact matches is not tried;
+         * one with long exact matches goes on to the probe below, whatever r's identity */
+        if (m > 1 && c->d > 100 && ((!JUMPS && r->ident >= 0.85) || c->run < 24)) return 1;
         /* longer period: must beat r in a quick probe. Similar or shorter period inside a clean array:
          * probe as well, so that off-period chains in a big satellite are not aligned end to end.
          * Inside a noisy call nothing is assumed and the candidate is refined. */
@@ -485,6 +526,8 @@ static void set_barriers(const cand_t *c, int64_t nb)
             if (r->start <= a && r->end >= e) continue;                 /* anchor inside r: handled by covered() */
             int64_t lo = c->d < r->p ? c->d : r->p, hi = c->d < r->p ? r->p : c->d;
             if (!(hi * 2 <= lo * 3 || near_multiple((int)hi, (int)lo) >= 1)) continue;
+            /* a long candidate that is a multiple of r's period may be the higher-order repeat of r's array */
+            if (JUMPS && c->d >= JMIN && c->d > r->p && c->run >= 24 && near_multiple(c->d, r->p) >= 2) continue;
             int64_t pad = 2 * hi;
             if (r->end <= e && r->end - pad > LIMLO) LIMLO = r->end - pad;
             if (r->start >= a && r->start + pad < LIMHI) LIMHI = r->start + pad;
@@ -552,7 +595,7 @@ static int cover_has_period(int64_t a, int d, int p, int skip)
 {
     for (int x = head[a / BIN]; x >= 0; x = nodes[x].next) {
         res_t *r = &Rs[nodes[x].r];
-        if (nodes[x].r == skip || r->start > a || r->end < a + d) continue;
+        if ((JUMPS ? nodes[x].r >= skip : nodes[x].r == skip) || r->start > a || r->end < a + d) continue; /* skip: results of this candidate itself */
         if (near_multiple(p, r->p) == 1) return 1;
     }
     return 0;
@@ -638,15 +681,15 @@ static void find_raw(const uint8_t *s, int64_t n, tier_t *T, int nt, int64_t bas
                     int shorter = (int64_t)r->p * 3 <= (int64_t)q->p * 2;
                     /* a shorter period is another level of structure: keep it if it is a decent repeat in its own right */
                     int better = shorter ? (DENSITY(r) >= 0.95 * DENSITY(q) || DENSITY(r) >= 0.5) : DENSITY(r) > 1.15 * DENSITY(q);
-                    if (cover_has_period(a0, C[i].d, r->p, (int)nR - 1)) better = 0; /* reduced to a period that is already called */
-                    drop_last();
+                    if (cover_has_period(a0, C[i].d, r->p, JUMPS ? (int)r0 : (int)nR - 1)) better = 0; /* reduced to a period that is already called */
+                    if (JUMPS) while (nR > r0) drop_last(); else drop_last();
                     if (better) refine(s, n, &C[i]);
                     else {
                         redun[a0 / REDBIN]++;
                         if (q->nrej == q->mrej) { q->mrej = q->mrej ? q->mrej * 2 : 16; q->rej = realloc(q->rej, q->mrej * sizeof(int)); }
                         q->rej[q->nrej++] = C[i].d; LIMLO = 0; LIMHI = INT64_MAX; continue;
                     }
-                } else if (Rs[bc].end - Rs[bc].start >= REDCOVER && cover_has_period(a0, C[i].d, r->p, (int)nR - 1)) redun[a0 / REDBIN]++;
+                } else if (Rs[bc].end - Rs[bc].start >= REDCOVER && cover_has_period(a0, C[i].d, r->p, JUMPS ? (int)r0 : (int)nR - 1)) redun[a0 / REDBIN]++;
             }
         } else refine(s, n, &C[i]);
         LIMLO = 0; LIMHI = INT64_MAX;
@@ -851,6 +894,8 @@ static void usage(void)
         "           sequence of the same length and base composition [no limit]\n"
         "  -S       sensitive for short repeats: periods of 4 bp or less need only score 22 and\n"
         "           evidence 14 (finds microsatellites of about 11 bp and up; more chance calls)\n"
+        "  -H       higher-order repeat mode: follow copies that lack or repeat whole sub-units, so that\n"
+        "           the full repeat unit of satellite arrays is reported (about 2 times slower)\n"
         "  -c NUM   min copies [1.8]\n"
         "  -m/-x/-g INT  match/mismatch/gap [2/3/5]     -X INT  X-drop [40]     -b INT  band [10]\n"
         "  -t INT   worker processes for sequences longer than 4 Mb [1]\n"
@@ -867,7 +912,7 @@ int main(int argc, char **argv)
     int o;
     const char *ufile = NULL;
     double tstart = wall(); PROF = getenv("TANDEX_PROFILE") != NULL;
-    while ((o = getopt(argc, argv, "m:x:g:X:s:e:E:c:p:b:t:f:u:aSvh")) != -1) {
+    while ((o = getopt(argc, argv, "m:x:g:X:s:e:E:c:p:b:t:f:u:aSHvh")) != -1) {
         switch (o) {
         case 'm': MA = atoi(optarg); break;
         case 'x': MI = atoi(optarg); break;
@@ -884,6 +929,7 @@ int main(int argc, char **argv)
         case 'u': ufile = optarg; break;
         case 'a': KEEPALL = 1; break;
         case 'S': SHORT = 1; break;
+        case 'H': JUMPS = 1; break;
         case 'v': puts(VERSION); return 0;
         default: usage(); return o == 'h' ? 0 : 1;
         }

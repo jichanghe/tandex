@@ -49,6 +49,15 @@ point at the machine the benchmarks were run on (2 cores, 7 GB); edit them befor
 | `scaling_14threads.tsv` | Wall time with 1 to 12 workers on a 14-thread desktop |
 | `apes_seven.tsv` | Results for human CHM13 and the six apes |
 
+## Higher-order repeats (`-H`)
+
+| File | What it does |
+|---|---|
+| `hor_check.py` | Compares the HOR unit tandex reports per array with an autocorrelation estimate |
+| `hor_chm13.tsv` | Result for the 28 active HOR arrays of T2T-CHM13, tandex 0.8.0 `-H` |
+| `run_hprc_pilot.sh`, `run_hprc_hor.sh` | Pilot on 20 HPRC release 2 haplotypes: download and run, then re-run with `-H` |
+| `hprc_cen_hor.py` | Per active centromere array: length and the HOR unit tandex reports |
+
 ## ULTRA with long periods and TRASH
 
 Run on CHM13 chr21 by `run_next.sh` (part C) and `run_fix.sh`; results in `chr21_rivals.txt`.

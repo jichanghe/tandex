@@ -11,7 +11,7 @@ Repository: https://github.com/jichanghe/tandex
 ```
 git clone https://github.com/jichanghe/tandex && cd tandex
 make            # or: gcc -O3 -o tandex src/tandex.c -lm -lz
-make test       # 14 regression tests
+make test       # 15 regression tests
 ./tandex genome.fa.gz > repeats.tsv
 ./tandex -t 8 -f bed -u units.bed genome.fa > repeats.bed
 ```
@@ -25,6 +25,7 @@ make test       # 14 regression tests
 | `-e INT` | minimum evidence (score beyond the first copy, see below) | 30 |
 | `-E NUM` | maximum E-value (see Method, step 5) | no limit |
 | `-S` | sensitive for short repeats: periods of 4 bp or less need only score 22 and evidence 14 | off |
+| `-H` | higher-order repeat mode: follow copies that lack or repeat whole sub-units (about 2 times slower) | off |
 | `-c NUM` | minimum copy number | 1.8 |
 | `-m/-x/-g INT` | match / mismatch / gap scores | 2 / 3 / 5 |
 | `-X INT`, `-b INT` | X-drop (grows with period), band half-width | 40, 10 |
@@ -389,6 +390,35 @@ plausibility (56,044 arrays).
 Setting `TANDEX_PROFILE=1` in the environment (version 0.7.2) prints to stderr how long each
 sequence spent in the parallel search and in the final single-process step, and every 2 Mb
 chunk that took 5 s or more. Output is unchanged.
+
+### 10. Higher-order repeat units: the `-H` option (version 0.8.0)
+
+Centromere arrays are built from higher-order repeats (HORs): a unit of several 171-bp monomers
+repeated almost exactly. Many copies lack or repeat whole monomers, which shifts the alignment
+by far more than the band allows; without `-H` tandex then falls back to the monomer or a
+340-bp dimer. With `-H`, before each 1,024-base segment of a long-period alignment (300 bp or
+more) the next 64 bases are compared with the consensus, and the alignment jumps to another
+phase when that phase fits clearly better.
+
+Check on the 28 active HOR arrays of 500 kb or more in T2T-CHM13 (`bench/hor_check.py`,
+results in `bench/hor_chm13.tsv`), against an independent estimate of the unit from
+autocorrelation:
+
+| | Unit agrees with autocorrelation | Time, all 28 arrays (75 Mb, 2 workers) |
+|---|---|---|
+| tandex 0.7.2 | 8 of 28 | 199 s |
+| tandex 0.8.0 `-H` | 24 of 28 | 503 s |
+
+With `-H` the reported units include the 17-mer on chr3, 19-mer on chr4, 6-mer on chr7, 5-mer
+on chr11, 8-mer on chr12, chr14 and chr22, 10-mer on chr16, 16-mer on chr17 and chr20, and
+12-mer on chr18 and chrX, at 96 to 99% identity. The four disagreements are chr6 (15 against
+18), chr8, chr10 and one array on chr20; in the last three the autocorrelation estimate is
+itself weak (2 to 4 of 6 windows). The autocorrelation estimate is ours, not a published
+annotation, and the option was developed on these same arrays.
+
+Cost: whole CHM13 chromosomes take about twice as long with `-H` (chr21 112 s against 56 s,
+chr9 331 s against 165 s, 2 workers), with satellite coverage unchanged. Without `-H` the
+output is identical to 0.7.2 on GRCh38 chr21. `-H` was not part of any earlier benchmark.
 
 ## Where tandex stands
 

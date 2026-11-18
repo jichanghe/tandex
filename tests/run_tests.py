@@ -157,6 +157,26 @@ def short_option_finds_small_microsatellites():
     # the lower bar applies to periods of 4 bp or less only
     assert not find(short, 'x', 15029, 15049, 10), short
 
+@test
+def hor_option_reports_the_full_unit():
+    # a 12-monomer higher-order repeat; some copies lack two monomers, as in real centromeres
+    rnd = random.Random(7)
+    base = rs(171)
+    def mutate(x, rate):
+        return ''.join(rnd.choice('ACGT') if rnd.random() < rate else c for c in x)
+    mono = [mutate(base, 0.25) for _ in range(12)]
+    arr = []
+    for i in range(60):
+        m = mono if i % 7 else mono[:5] + mono[7:]
+        arr.append(mutate(''.join(m), 0.01))
+    seq = rs(3000) + ''.join(arr) + rs(3000)
+    path = write('h.fa', [('x', seq)])
+    end = 3000 + sum(len(a) for a in arr)
+    def full_unit(rows):
+        return [r for r in rows if r[0] == 'x' and abs(int(r[3]) - 2052) <= 20 and int(r[2]) - int(r[1]) > 0.9 * (end - 3000) and float(r[6]) >= 96]
+    assert not full_unit(run(['-p', '5000', path])), 'default mode is not expected to follow the unit through the short copies'
+    assert full_unit(run(['-p', '5000', '-H', path])), run(['-p', '5000', '-H', path])
+
 failed = 0
 for t in tests:
     try: t(); print('ok   ', t.__name__)
