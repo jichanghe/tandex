@@ -28,7 +28,7 @@
 #include <zlib.h>
 #include <time.h>
 
-#define VERSION "0.8.0"
+#define VERSION "0.8.1"
 
 static int MA = 2, MI = 3, GP = 5, XD = 40, MINSCORE = 40, EVMIN = 30, BAND = 10, MAXP = 20000, KEEPALL = 0;
 static int THREADS = 1, BEDOUT = 0;
@@ -767,8 +767,14 @@ static void finish(const char *name, const uint8_t *s, int64_t n)
                     /* a longer period must have clearly more evidence than a shorter one over the same region
                      * (evidence, not raw score: a long consensus fits its own first copy for free);
                      * an intermediate level between two others needs a larger margin */
-                    if (r->p * 3 <= q->p * 2 && ov * 10 >= (q->end - q->start) * 8 &&
-                        (double)(q->score - (int64_t)MA * q->p) < (q->nested ? 1.5 : LONGER) * (double)(r->score - (int64_t)MA * r->p) * (len > q->end - q->start ? (double)(q->end - q->start) / (double)len : 1.0)) {
+                    /* in higher-order repeat mode a long consensus can run through an interruption that stops
+                     * the true unit, so the two are compared per base, and r need only lie inside q */
+                    int lose;
+                    if (JUMPS) lose = ov * 10 >= (q->end - q->start) * 3 && ov * 10 >= len * 9 &&
+                        (double)(q->score - (int64_t)MA * q->p) / (double)(q->end - q->start) < (q->nested ? 1.5 : LONGER) * (double)(r->score - (int64_t)MA * r->p) / (double)len;
+                    else lose = ov * 10 >= (q->end - q->start) * 8 &&
+                        (double)(q->score - (int64_t)MA * q->p) < (q->nested ? 1.5 : LONGER) * (double)(r->score - (int64_t)MA * r->p) * (len > q->end - q->start ? (double)(q->end - q->start) / (double)len : 1.0);
+                    if (r->p * 3 <= q->p * 2 && lose) {
                         if (q->core) continue;
                         if (!(core_rescue(s, n, q) && DENSITY(q) > COREF * local_density(r, s, q->start, q->end))) q->dead = 1;
                         continue;

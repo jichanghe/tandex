@@ -420,6 +420,16 @@ Cost: whole CHM13 chromosomes take about twice as long with `-H` (chr21 112 s ag
 chr9 331 s against 165 s, 2 workers), with satellite coverage unchanged. Without `-H` the
 output is identical to 0.7.2 on GRCh38 chr21. `-H` was not part of any earlier benchmark.
 
+Pilot on 20 HPRC release 2 haplotypes (whole assemblies, `-H`, version 0.8.0; 406 complete
+active arrays of 500 kb or more). An independent self-comparison of each array
+(`bench/hprc_units.py`) was confident for 250 arrays; tandex reported the same unit in 238 of
+them (95%). In 8 of the 12 errors a long multiple of the unit had displaced it, because a long
+consensus can run through an interruption (for example a transposon insertion) that stops the
+true unit. Version 0.8.1 compares the two per base in `-H` mode; this corrects the two cases
+examined (chr12 of HG02015 and chr4 of HG03098) and leaves the CHM13 result at 24 of 28. For 156
+arrays the check was not confident (all of chr1, chr5, chr8 and chr19). `bench/run_hprc_all.sh`
+runs the same analysis on the arrays only, for all 462 haplotypes.
+
 ## Where tandex stands
 
 - **Better than the others tested:** sensitivity and period accuracy on the simulation (all
