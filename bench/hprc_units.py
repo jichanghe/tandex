@@ -6,8 +6,9 @@ extract: writes every annotated active HOR array ('active_hor', 500 kb or more, 
   end or next to a gap) with up to 200 kb of flank, one record each, named
   seq|start|end|chr|family|left_flank.
 units: for each array, the higher-order repeat unit (in monomers of about 171 bp) by two methods:
-  tandex  - the shortest call period >= 300 bp that covers at least half the array and whose
-            identity is within one point of the best such period (periods within 1% merged);
+  tandex  - among call periods >= 300 bp covering at least half the array (periods within 1%
+            merged), the shortest whose coverage is at least 0.9 of the best coverage and whose
+            identity is within two points of the best (before 0.8.2: within one point, no coverage term);
   self-comparison (independent of tandex) - in 12 windows of 20 kb, for every unit of k monomers
             (k = 2..38) the identity between the sequence and itself k monomers further on, measured
             in 200-bp pieces each at its own best shift; the smallest k within 0.01 of the best;
@@ -81,10 +82,11 @@ def units(d, callsf):
             ov = min(b, off + L) - max(a, off)
             if ov > 0:
                 k = next((q for q in per if abs(p - q) <= 0.01 * q), p); per[k] += ov; idn[k] += i * ov
-        big = {k: idn[k] / per[k] for k in per if per[k] >= 0.5 * L}
+        big = {k: (min(1, per[k] / L), idn[k] / per[k]) for k in per if per[k] >= 0.5 * L}
         p = 0; ident = 0.0
         if big:
-            top = max(big.values()); p = min(k for k in big if big[k] >= top - 1.0); ident = big[p]
+            top = max(v[1] for v in big.values()); cmax = max(v[0] for v in big.values())
+            p = min(k for k in big if big[k][1] >= top - 2.0 and big[k][0] >= 0.9 * cmax); ident = big[p][1]
         v = auto_unit(np.frombuffer(seq.upper().encode(), dtype=np.uint8)[off:off + L]).most_common(2)
         a, cnt = v[0] if v else (0, 0); second = f'{v[1][0]}:{v[1][1]}' if len(v) > 1 else '-'
         t = round(p / 171)
@@ -96,6 +98,7 @@ def units(d, callsf):
         o.write('hap\tsample\tpop\tsex\tchr\tannotated_family\tseq\tstart\tend\tlength\ttandex_period\ttandex_n_mer\ttandex_identity\tself_n_mer\tself_windows\tself_second\tagree\tconfident\n')
         for r in out: o.write('\t'.join(map(str, r)) + '\n')
     print(f'{len(out)} arrays; agree {sum(r[16] == "yes" for r in out)}; confident and agree {sum(r[16] == "yes" and r[17] == "yes" for r in out)}; confident and differ {sum(r[16] == "no" and r[17] == "yes" for r in out)}')
-if sys.argv[1] == 'extract': extract(sys.argv[2].rstrip('/'), sys.argv[3])
-elif sys.argv[1] == 'units': units(sys.argv[2].rstrip('/'), sys.argv[3])
-else: sys.exit(__doc__)
+if __name__ == '__main__':
+    if len(sys.argv) > 3 and sys.argv[1] == 'extract': extract(sys.argv[2].rstrip('/'), sys.argv[3])
+    elif len(sys.argv) > 3 and sys.argv[1] == 'units': units(sys.argv[2].rstrip('/'), sys.argv[3])
+    else: sys.exit(__doc__)

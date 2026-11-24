@@ -430,6 +430,18 @@ examined (chr12 of HG02015 and chr4 of HG03098) and leaves the CHM13 result at 2
 arrays the check was not confident (all of chr1, chr5, chr8 and chr19). `bench/run_hprc_all.sh`
 runs the same analysis on the arrays only, for all 462 haplotypes.
 
+Full HPRC release 2 run (461 haplotypes, 231 people, 28 populations; 9,433 complete active
+arrays; `-H`, version 0.8.1): where the independent check was confident (5,793 arrays), tandex
+reported the same unit in 5,556 (95.9%). Most disagreements were on chr15 (132 arrays reported as
+11-mer where the check found 15-mer) and chr12 (21 arrays as a 43-mer). Version 0.8.2 lets a
+longer, non-multiple period replace a shorter one that follows it only by jumping, when it
+aligns with clearly higher identity; this fixes the chr15 cases tested and chr6 in CHM13 (19 of 19
+confident CHM13 arrays now agree). The chr12 cases were a reporting rule, not tandex: the array
+does contain a 7,420-bp super-repeat at 99% identity over most of its length, alongside the
+8-mer at 98%; the rule now prefers the shortest unit within two identity points that covers
+nearly the whole array. Both changes were made after seeing these errors. `bench/run_recheck.sh`
+re-checks chr12 and chr15 in all haplotypes and every array in 40 random haplotypes.
+
 ## Where tandex stands
 
 - **Better than the others tested:** sensitivity and period accuracy on the simulation (all

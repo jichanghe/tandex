@@ -57,6 +57,7 @@ point at the machine the benchmarks were run on (2 cores, 7 GB); edit them befor
 | `hor_chm13.tsv` | Result for the 28 active HOR arrays of T2T-CHM13, tandex 0.8.0 `-H` |
 | `run_hprc_pilot.sh`, `run_hprc_hor.sh` | Pilot on 20 HPRC release 2 haplotypes: download and run, then re-run with `-H` |
 | `hprc_units.py`, `run_hprc_all.sh`, `hprc_all.tsv` | All 462 HPRC haplotypes: cut out the arrays, run tandex `-H`, unit by tandex and by self-comparison |
+| `hprc_recheck.py`, `run_recheck.sh`, `recheck_haps40.txt` | Re-check of the HPRC units with a newer tandex, reusing the independent check |
 | `hprc_verify.py` | The self-comparison check for the 20-haplotype pilot |
 | `hprc_cen_hor.py` | Per active centromere array: length and the HOR unit tandex reports |
 

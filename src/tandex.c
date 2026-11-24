@@ -28,7 +28,7 @@
 #include <zlib.h>
 #include <time.h>
 
-#define VERSION "0.8.1"
+#define VERSION "0.8.2"
 
 static int MA = 2, MI = 3, GP = 5, XD = 40, MINSCORE = 40, EVMIN = 30, BAND = 10, MAXP = 20000, KEEPALL = 0;
 static int THREADS = 1, BEDOUT = 0;
@@ -681,6 +681,10 @@ static void find_raw(const uint8_t *s, int64_t n, tier_t *T, int nt, int64_t bas
                     int shorter = (int64_t)r->p * 3 <= (int64_t)q->p * 2;
                     /* a shorter period is another level of structure: keep it if it is a decent repeat in its own right */
                     int better = shorter ? (DENSITY(r) >= 0.95 * DENSITY(q) || DENSITY(r) >= 0.5) : DENSITY(r) > 1.15 * DENSITY(q);
+                    /* in higher-order repeat mode a shorter unit can follow a longer one by jumping, at nearly the
+                     * same score; a longer, non-multiple period that aligns with clearly higher identity is tried */
+                    if (JUMPS && !shorter && !better && r->p > q->p && r->p >= JMIN && near_multiple(r->p, q->p) == 0 &&
+                        r->ident >= q->ident + 0.01 && DENSITY(r) > DENSITY(q)) better = 1;
                     if (cover_has_period(a0, C[i].d, r->p, JUMPS ? (int)r0 : (int)nR - 1)) better = 0; /* reduced to a period that is already called */
                     if (JUMPS) while (nR > r0) drop_last(); else drop_last();
                     if (better) refine(s, n, &C[i]);
