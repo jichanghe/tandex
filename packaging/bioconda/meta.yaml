@@ -1,8 +1,8 @@
 {% set name = "tandex" %}
-{% set version = "0.7.2" %}
+{% set version = "0.8.2" %}
 # After tagging v{{ version }} on GitHub, fill in sha256 with:
-#   curl -sL https://github.com/jichanghe/tandex/archive/refs/tags/v0.7.2.tar.gz | sha256sum
-{% set sha256 = "ee52648232edc2b56b05b36a9c9c74a2e5def44489829512e27048ac714be1a6" %}
+#   curl -sL https://github.com/jichanghe/tandex/archive/refs/tags/v0.8.2.tar.gz | sha256sum
+{% set sha256 = "de04dbabfede047743110b6ae09f9c2ad0510e6cab43ef2f2a717af8637777e3" %}
 
 package:
   name: {{ name }}
@@ -40,4 +40,4 @@ about:
 
 extra:
   identifiers:
-    - doi:10.5281/zenodo.24316533
+    - doi:10.5281/zenodo.24547321

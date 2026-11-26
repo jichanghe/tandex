@@ -1,4 +1,4 @@
-cff-version: 1.2.0
+cff-version: 0.8.2
 message: "If you use tandex, please cite it as below."
 title: "tandex: fast de novo detection of tandem repeats with period-independent cost"
 type: software
@@ -7,7 +7,7 @@ authors:
     given-names: Changhe
 version: 0.8.2
 date-released: 2026-11-25
-doi: 10.5281/zenodo.24316533
+doi: 10.5281/zenodo.24547321
 repository-code: "https://github.com/jichanghe/tandex"
 license: MIT
 keywords:
