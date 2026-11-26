@@ -86,7 +86,8 @@ def units(d, callsf):
         p = 0; ident = 0.0
         if big:
             top = max(v[1] for v in big.values()); cmax = max(v[0] for v in big.values())
-            p = min(k for k in big if big[k][1] >= top - 2.0 and big[k][0] >= 0.9 * cmax); ident = big[p][1]
+            ok = [k for k in big if big[k][1] >= top - 2.0 and big[k][0] >= 0.9 * cmax]
+            p = min(ok) if ok else min(k for k in big if big[k][1] >= top - 2.0); ident = big[p][1]
         v = auto_unit(np.frombuffer(seq.upper().encode(), dtype=np.uint8)[off:off + L]).most_common(2)
         a, cnt = v[0] if v else (0, 0); second = f'{v[1][0]}:{v[1][1]}' if len(v) > 1 else '-'
         t = round(p / 171)

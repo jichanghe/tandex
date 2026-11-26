@@ -23,7 +23,8 @@ def unit(calls, off, L):
     big = {k: (min(1, per[k] / L), idn[k] / per[k]) for k in per if per[k] >= 0.5 * L}
     if not big: return 0, 0.0
     top = max(v[1] for v in big.values()); cmax = max(v[0] for v in big.values())
-    p = min(k for k in big if big[k][1] >= top - 2.0 and big[k][0] >= 0.9 * cmax)
+    ok = [k for k in big if big[k][1] >= top - 2.0 and big[k][0] >= 0.9 * cmax]
+    p = min(ok) if ok else min(k for k in big if big[k][1] >= top - 2.0)  # no period is both near-best: drop the coverage term
     return p, big[p][1]
 first = not os.path.exists(out)
 with open(out, 'a') as o:
