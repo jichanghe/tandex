@@ -9,3 +9,4 @@ ULTRA-p200-chr21	1975.8 s	1726 MB	rc=0
 tandex-p50000-chr21	100.0 s	162 MB	rc=0
 tandex-p50000-chr22	145.3 s	180 MB	rc=0
 tantan-w200-chr9	176.4 s	324 MB	rc=0
+tandex-p50000-chr21-v082	65.8 s	160 MB	rc=0
